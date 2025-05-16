@@ -19,7 +19,7 @@
                         {% for gender in genders %}
                             <option value="{{ gender.pk }}" {% if user.gender.pk == gender.pk %}selected{% endif %}>{{ gender.gender }}</option>
                         {% endfor %}
-                    </select> 
+                    </select>   
 
             <label for="birth_date" class="block text-sm font-medium mb-2">Birth Date</label>
             <input type="date" class="bg-white mb-2 px-3 py-2.5 border border-gray-400 text-black block text-sm rounded-sm w-full 
