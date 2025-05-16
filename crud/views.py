@@ -3,8 +3,21 @@ from django.http import HttpResponse
 from django.contrib import messages
 from .models import Genders, Users
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate
+from django.contrib.auth.decorators import login_required
 
-# Create your views here.
+
+def log_in(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login_required(request, user)
+            return redirect('/user/list')
+        else:
+            messages.error(request, 'Invalid username or password.')
+    return render(request, 'layout/login.html')
 
 def gender_list(request):
     try:
@@ -129,4 +142,51 @@ def add_user(request):
         }
         return render(request, 'user/AddUser.html', data)
     except Exception as e:
-        return HttpResponse(f'Error occurred during  add user: {e}')
+        return HttpResponse(f'Error occurred during add user: {e}')
+        
+def edit_user(request, userId):
+    try:
+        userObj = Users.objects.get(pk=userId)
+        if request.method == 'POST':
+            fullName = request.POST.get('full_name')
+            gender = request.POST.get('gender')
+            birthDate = request.POST.get('birth_date')
+            address = request.POST.get('address')
+            contactNumber = request.POST.get('contact_number')
+            email = request.POST.get('email')
+            username = request.POST.get('username')
+
+            userObj.full_name = fullName
+            userObj.gender = Genders.objects.get(pk=gender)
+            userObj.birth_date = birthDate
+            userObj.address = address
+            userObj.contact_number = contactNumber
+            userObj.email = email
+            userObj.username = username
+            userObj.save()
+
+            messages.success(request, 'User updated successfully!')
+
+        genderObj = Genders.objects.all()
+        data = {
+            'user': userObj,
+            'genders': genderObj
+        }
+        return render(request, 'user/EditUser.html', data)
+    except Exception as e:
+        return HttpResponse(f'Error occurred during edit user: {e}')
+    
+def delete_user(request, userId):
+    try:
+        userObj = Users.objects.get(pk=userId)
+        if request.method == 'POST':
+            userObj.delete()
+            messages.success(request, 'User deleted successfully!')
+            return redirect('/user/list')
+        else:
+            data = {
+                'user': userObj
+            }
+            return render(request, 'user/DeleteUser.html', data)
+    except Exception as e:
+        return HttpResponse(f'Error occurred during delete user: {e}')
