@@ -2,8 +2,14 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.contrib import messages
 from .models import Genders, Users
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate
+from django.contrib.auth.decorators import login_required
+from django.db.models import Q  # <-- Add this import
+from django.core.paginator import Paginator
+from django.contrib.auth.models import AbstractUser
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
 
@@ -11,12 +17,17 @@ def log_in(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login_required(request, user)
-            return redirect('/user/list')
-        else:
-            messages.error(request, 'Invalid username or password.')
+        
+        try:
+            user = Users.objects.get(username=username)
+            if check_password(password, user.password):  # Use check_password
+                
+                return redirect('/user/list')
+            else:
+                messages.error(request, 'Invalid password')
+        except Users.DoesNotExist:
+            messages.error(request, 'Invalid username')
+    
     return render(request, 'layout/login.html')
 
 def gender_list(request):
@@ -94,15 +105,33 @@ def delete_gender(request, genderId):
     
 def user_list(request):
     try:
-        userObj = Users.objects.select_related('gender')
+        users = Users.objects.select_related('gender')
+        search_query = request.GET.get('search', '')
 
-        data = {
-            'users': userObj
-        }
+        # Apply search filter if query exists
+        if search_query:
+            users = users.filter(
+                Q(full_name__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(username__icontains=search_query)
+            )
 
-        return render(request, 'user/UsersList.html', data)
+        # Pagination
+        paginator = Paginator(users, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        # Ensure compatibility with your template
+        return render(request, 'user/UsersList.html', {
+            'users': page_obj.object_list,  
+            'page_obj': page_obj,          
+            'search_query': search_query,   
+            'genders': Genders.objects.all()  
+        })
+
     except Exception as e:
-        return HttpResponse(f'Error occurred during Load users: {e}')
+        messages.error(request, f'Error loading users: {e}')
+        return redirect('/user/list')  
 def add_user(request):
     try:
         if request.method == 'POST':
@@ -190,3 +219,4 @@ def delete_user(request, userId):
             return render(request, 'user/DeleteUser.html', data)
     except Exception as e:
         return HttpResponse(f'Error occurred during delete user: {e}')
+        
