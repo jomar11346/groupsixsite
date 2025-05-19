@@ -1,16 +1,16 @@
 {% extends "layout/base.html" %}
 
-{% block 'title' %} Add User Page {% endblock 'title' %}
+{% block 'title' %} Create Account {% endblock 'title' %}
 
 {% block 'content' %}
-
-{% include "include/sidebar.html" %}
 {% include "include/ToastMessage.html"%}
-<div class="p-4 sm:ml-64 mt-16 md:mt-14">
-    <form action="/user/add" method="post">
-        <div class="max-w-7xl mx-auto">
-            {% csrf_token %}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="p-4 mt-16 md:mt-14 max-w-2xl mx-auto">
+    <form action="/user/add?public=1" method="post">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Form fields for full_name, email, gender, etc. -->
+            <!-- Example: -->
+           
                 <div>
                     <label for="full_name" class="block text-sm font-medium mb-2">Full Name</label>
                     <input type="text" name="full_name" id="full_name"
@@ -23,7 +23,7 @@
                 </div>
                 <div>
                     <label for="gender" class="block text-sm font-medium mb-2">Gender</label>
-                    <select name="gender" id="gender"
+                    <select name="gender" id="gender" required
                         class="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Select Gender</option>
                         {% for gender in genders %}
@@ -66,8 +66,8 @@
                         class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition-all">Submit</button>
                 </div>
             </div>
+           
         </div>
     </form>
 </div>
-
 {% endblock 'content' %}

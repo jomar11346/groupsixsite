@@ -12,6 +12,7 @@ urlpatterns = [
     path('user/add', views.add_user),
     path('user/edit/<int:userId>', views.edit_user),
     path('user/delete/<int:userId>', views.delete_user),
-    path('logout/', LogoutView.as_view(next_page='login'), name='logout')
+    path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
+   
     
 ]

@@ -9,8 +9,13 @@ from django.core.paginator import Paginator
 from django.contrib.auth.models import AbstractUser
 from django.shortcuts import render, redirect
 from .utils import login_required_custom
+from django.views.decorators.cache import never_cache
+from django.contrib import messages
 
+
+@never_cache
 def log_in(request):
+    
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -29,6 +34,7 @@ def log_in(request):
     return render(request, 'layout/login.html')
 
 @login_required_custom
+@never_cache
 def gender_list(request):
     try:
         genders= Genders.objects.all()
@@ -41,6 +47,7 @@ def gender_list(request):
     except Exception as e:
         return HttpResponse(f'Error occurred during load genders: {e}')
 @login_required_custom
+@never_cache
 def add_gender(request):
     try:
         if request.method == 'POST':
@@ -54,6 +61,7 @@ def add_gender(request):
     except Exception as e:
         return HttpResponse(f'Error occured during add gender: {e}')
 @login_required_custom
+@never_cache
 def edit_gender(request, genderId):
     try:
         if request.method == 'POST':
@@ -82,7 +90,8 @@ def edit_gender(request, genderId):
         
     except Exception as e:
         return HttpResponse(f'Error Occurred during edit gender: {e}')
-@login_required_custom   
+@login_required_custom
+@never_cache  
 def delete_gender(request, genderId):
     try:
         if request.method == 'POST':
@@ -101,7 +110,8 @@ def delete_gender(request, genderId):
          return render(request, 'gender/DeleteGender.html', data)
     except Exception as e:
         return HttpResponse(f'Error Occurred during delete gender: {e}')
-@login_required_custom   
+@login_required_custom
+@never_cache  
 def user_list(request):
     try:
         users = Users.objects.select_related('gender')
@@ -115,25 +125,26 @@ def user_list(request):
                 Q(username__icontains=search_query)
             )
 
-        # Pagination
+        # Pagination: limit to 10 users per page
         paginator = Paginator(users, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
 
-        # Ensure compatibility with your template
+        # Pass the paginated object as 'users'
         return render(request, 'user/UsersList.html', {
-            'users': page_obj.object_list,  
-            'page_obj': page_obj,          
-            'search_query': search_query,   
-            'genders': Genders.objects.all()  
+            'users': page_obj,  # <-- This is the key change
+            'search_query': search_query,
+            'genders': Genders.objects.all()
         })
 
     except Exception as e:
         messages.error(request, f'Error loading users: {e}')
-        return redirect('/user/list') 
+        return redirect('/user/list')
     
-@login_required_custom    
+ 
 def add_user(request):
+    is_public = request.GET.get('public') == '1'
+    template = 'user/AddUserPublic.html' if is_public else 'user/AddUser.html'
     try:
         if request.method == 'POST':
             fullName = request.POST.get('full_name')
@@ -146,9 +157,19 @@ def add_user(request):
             password = request.POST.get('password')
             confirmPassword = request.POST.get('confirm_password')
             
+
+            if Users.objects.filter(username=username).exists():
+                messages.error(request, 'Username already exists. Please choose another one.')
+                if is_public:
+                    return redirect('/user/add?public=1')
+                return redirect('/user/add')
             if password != confirmPassword:
                 messages.error(request, 'Password and Confirm Password do not match!')
+                # Redirect with the public flag if public
+                if is_public:
+                    return redirect('/user/add?public=1')
                 return redirect('/user/add')
+            
 
             Users.objects.create(
                 full_name=fullName,
@@ -162,19 +183,23 @@ def add_user(request):
             ).save()
 
             messages.success(request, 'User added successfully!')
+            # Redirect to login if public registration, else stay on add user
+            if is_public:
+                return redirect('/login/')
             return redirect('/user/add')
 
         else:
-         genderObj = Genders.objects.all()
+            genderObj = Genders.objects.all()
 
         data = {
             'genders': genderObj
         }
-        return render(request, 'user/AddUser.html', data)
+        return render(request, template, data)
     except Exception as e:
         return HttpResponse(f'Error occurred during add user: {e}')
     
-@login_required_custom       
+@login_required_custom
+@never_cache      
 def edit_user(request, userId):
     try:
         userObj = Users.objects.get(pk=userId)
@@ -207,7 +232,8 @@ def edit_user(request, userId):
     except Exception as e:
         return HttpResponse(f'Error occurred during edit user: {e}')
     
-@login_required_custom   
+@login_required_custom
+@never_cache   
 def delete_user(request, userId):
     try:
         userObj = Users.objects.get(pk=userId)
@@ -222,4 +248,9 @@ def delete_user(request, userId):
             return render(request, 'user/DeleteUser.html', data)
     except Exception as e:
         return HttpResponse(f'Error occurred during delete user: {e}')
+
+
         
+def log_out(request):
+    request.session.flush()  # Clears all session data
+    return redirect('login/')  # Change to your login URL
