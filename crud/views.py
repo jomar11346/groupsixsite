@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib import messages
 from .models import Genders, Users
@@ -11,6 +11,7 @@ from django.shortcuts import render, redirect
 from .utils import login_required_custom
 from django.views.decorators.cache import never_cache
 from django.contrib import messages
+
 
 
 @never_cache
@@ -141,7 +142,7 @@ def user_list(request):
         messages.error(request, f'Error loading users: {e}')
         return redirect('/user/list')
     
- 
+@login_required_custom
 def add_user(request):
     is_public = request.GET.get('public') == '1'
     template = 'user/AddUserPublic.html' if is_public else 'user/AddUser.html'
@@ -200,6 +201,9 @@ def add_user(request):
     
 @login_required_custom
 @never_cache      
+# ...existing code...
+@login_required_custom
+@never_cache      
 def edit_user(request, userId):
     try:
         userObj = Users.objects.get(pk=userId)
@@ -211,6 +215,16 @@ def edit_user(request, userId):
             contactNumber = request.POST.get('contact_number')
             email = request.POST.get('email')
             username = request.POST.get('username')
+
+            # Check if username exists for another user
+            if Users.objects.filter(username=username).exclude(pk=userId).exists():
+                messages.error(request, 'Username already exists. Please choose another one.')
+                genderObj = Genders.objects.all()
+                data = {
+                    'user': userObj,
+                    'genders': genderObj
+                }
+                return render(request, 'user/EditUser.html', data)
 
             userObj.full_name = fullName
             userObj.gender = Genders.objects.get(pk=gender)
@@ -231,6 +245,7 @@ def edit_user(request, userId):
         return render(request, 'user/EditUser.html', data)
     except Exception as e:
         return HttpResponse(f'Error occurred during edit user: {e}')
+
     
 @login_required_custom
 @never_cache   
@@ -248,9 +263,35 @@ def delete_user(request, userId):
             return render(request, 'user/DeleteUser.html', data)
     except Exception as e:
         return HttpResponse(f'Error occurred during delete user: {e}')
+    
+@login_required_custom
+def password(request, userId=None):
+    if not userId:
+        messages.error(request, 'User ID is required to change the password.')
+        return redirect('/user/list/')
+
+    user = get_object_or_404(Users, pk=userId)
+
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        confirm_password = request.POST.get('confirm_password')
+
+        if password and confirm_password:
+            if password != confirm_password:
+                messages.error(request, 'Passwords do not match!')
+                return redirect(f'/user/password/{userId}/')
+
+            user.password = make_password(password)
+            user.save()
+            messages.success(request, 'Password updated successfully!')
+            return redirect('/user/list')
+        else:
+            messages.error(request, 'Password fields cannot be empty!')
+
+    return render(request, 'user/ChangePassword.html', {'user': user})
 
 
         
 def log_out(request):
     request.session.flush()  # Clears all session data
-    return redirect('login/')  # Change to your login URL
+    return redirect('login/')  # Change to your login UR

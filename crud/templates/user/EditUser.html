@@ -41,6 +41,13 @@
             <input type="text" class="bg-white mb-2 px-3 py-2.5 border border-gray-400 text-black block text-sm rounded-sm w-full 
             focus:outline-none focus:ring-blue-700 focus:to-blue-700" name="username" id="username" value="{{ user.username }}" required />
 
+                            <a href="{% url 'password' user.user_id %}" 
+                   class="inline-flex items-center justify-center bg-blue-500 hover:bg-blue-600 text-sm font-medium text-white px-6 py-2 rounded-lg shadow-md transition duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Change Password
+                </a>
             <div class="flex justify-end">
                 <a href="/user/list" class="bg-white text-sm font-medium text-black px-3 py-2.5 mr-1 rounded-sm shadow-sm cursor-pointer hover:bg-blue-700 hover:outline-none">Back</a>
                 <button type="submit" class="bg-blue-600 text-sm font-medium text-white px-3 py-2.5 rounded-sm 
